@@ -27,6 +27,9 @@ from agent.prompt_builder import (
     SESSION_SEARCH_GUIDANCE,
     PLATFORM_HINTS,
     WSL_ENVIRONMENT_HINT,
+    format_active_profile_guidance,
+    get_agent_help_guidance,
+    get_default_agent_identity,
 )
 from hermes_cli.nous_subscription import NousFeatureState, NousSubscriptionFeatures
 
@@ -783,6 +786,33 @@ class TestPromptBuilderConstants:
     def test_default_identity_non_empty(self):
         assert len(DEFAULT_AGENT_IDENTITY) > 50
 
+    def test_default_branding_keeps_hermes_identity(self, monkeypatch):
+        monkeypatch.delenv("HERMES_PRODUCT_NAME", raising=False)
+        monkeypatch.delenv("HERMES_VENDOR_NAME", raising=False)
+        monkeypatch.delenv("HERMES_RUNTIME_NAME", raising=False)
+
+        assert get_default_agent_identity() == DEFAULT_AGENT_IDENTITY
+        assert "Hermes Agent" in get_agent_help_guidance()
+        assert "Active Hermes profile: default" in format_active_profile_guidance(
+            "default"
+        )
+    def test_env_branding_changes_identity_without_renaming_runtime(self, monkeypatch):
+        monkeypatch.setenv("HERMES_PRODUCT_NAME", "PortWise Agent")
+        monkeypatch.setenv("HERMES_VENDOR_NAME", "PortWise")
+        monkeypatch.setenv("HERMES_RUNTIME_NAME", "Hermes")
+
+        identity = get_default_agent_identity()
+        help_guidance = get_agent_help_guidance()
+        profile_guidance = format_active_profile_guidance("default")
+
+        assert identity.startswith("You are PortWise Agent")
+        assert "created by PortWise" in identity
+        assert "You are Hermes Agent" not in identity
+        assert "Do not present yourself as Hermes Agent" in help_guidance
+        assert "Hermes is only the internal runtime substrate" in help_guidance
+        assert "Active internal Hermes runtime profile: default" in profile_guidance
+        assert "Active Hermes profile: default" not in profile_guidance
+
     def test_platform_hints_known_platforms(self):
         assert "whatsapp" in PLATFORM_HINTS
         assert "telegram" in PLATFORM_HINTS
@@ -1245,6 +1275,4 @@ class TestOpenAIModelExecutionGuidance:
 # =========================================================================
 # Budget warning history stripping
 # =========================================================================
-
-
 

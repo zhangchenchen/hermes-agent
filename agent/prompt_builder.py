@@ -133,6 +133,104 @@ HERMES_AGENT_HELP_GUIDANCE = (
     "before answering. Docs: https://hermes-agent.nousresearch.com/docs"
 )
 
+
+def _branding_value(env_name: str, default: str) -> str:
+    value = os.getenv(env_name, "").strip()
+    return value or default
+
+
+def get_agent_product_name() -> str:
+    return _branding_value("HERMES_PRODUCT_NAME", "Hermes Agent")
+
+
+def get_agent_vendor_name() -> str:
+    return _branding_value("HERMES_VENDOR_NAME", "Nous Research")
+
+
+def get_agent_runtime_name() -> str:
+    return _branding_value("HERMES_RUNTIME_NAME", "Hermes")
+
+
+def get_default_agent_identity() -> str:
+    product_name = get_agent_product_name()
+    vendor_name = get_agent_vendor_name()
+    if product_name == "Hermes Agent" and vendor_name == "Nous Research":
+        return DEFAULT_AGENT_IDENTITY
+
+    return (
+        f"You are {product_name}, an intelligent AI assistant created by {vendor_name}. "
+        "You are helpful, knowledgeable, and direct. You assist users with a wide "
+        "range of tasks including answering questions, analyzing information, "
+        "writing and editing content, and executing actions via your approved tools. "
+        "You communicate clearly, admit uncertainty when appropriate, and prioritize "
+        "being genuinely useful over being verbose unless otherwise directed below. "
+        "Be targeted and efficient in your exploration and investigations."
+    )
+
+
+def get_agent_help_guidance() -> str:
+    product_name = get_agent_product_name()
+    runtime_name = get_agent_runtime_name()
+    if product_name == "Hermes Agent" and runtime_name == "Hermes":
+        return HERMES_AGENT_HELP_GUIDANCE
+
+    return (
+        f"You are {product_name}. Do not present yourself as {runtime_name} Agent; "
+        f"{runtime_name} is only the internal runtime substrate. If the user asks "
+        f"about configuring or troubleshooting the internal {runtime_name} runtime "
+        "itself, load the `hermes-agent` skill with skill_view(name='hermes-agent') "
+        "before answering low-level runtime questions. For product behavior, identity, "
+        f"and domain policy questions, answer as {product_name}."
+    )
+
+
+def format_active_profile_guidance(active_profile: str) -> str:
+    product_name = get_agent_product_name()
+    runtime_name = get_agent_runtime_name()
+
+    if product_name == "Hermes Agent" and runtime_name == "Hermes":
+        if active_profile == "default":
+            return (
+                "Active Hermes profile: default. Other profiles (if any) live "
+                "under ~/.hermes/profiles/<name>/. Each profile has its own "
+                "skills/, plugins/, cron/, and memories/ that affect a different "
+                "session than this one. Do not modify another profile's "
+                "skills/plugins/cron/memories unless the user explicitly directs "
+                "you to."
+            )
+        return (
+            f"Active Hermes profile: {active_profile}. This session reads "
+            f"and writes ~/.hermes/profiles/{active_profile}/. The default "
+            f"profile's data lives at ~/.hermes/skills/, ~/.hermes/plugins/, "
+            f"~/.hermes/cron/, ~/.hermes/memories/ — those belong to a "
+            f"different session run from a different shell. Do NOT modify "
+            f"another profile's skills/plugins/cron/memories unless the user "
+            f"explicitly directs you to. The cross-profile write guard will "
+            f"refuse such writes by default; pass cross_profile=True only "
+            f"after explicit direction."
+        )
+
+    if active_profile == "default":
+        return (
+            f"Active internal {runtime_name} runtime profile: default. "
+            "Other runtime profiles (if any) live under ~/.hermes/profiles/<name>/. "
+            "Each profile has its own skills/, plugins/, cron/, and memories/ "
+            "that affect a different session than this one. Do not modify another "
+            "profile's skills/plugins/cron/memories unless the user explicitly "
+            "directs you to."
+        )
+
+    return (
+        f"Active internal {runtime_name} runtime profile: {active_profile}. "
+        f"This session reads and writes ~/.hermes/profiles/{active_profile}/. "
+        "The default runtime profile's data lives at ~/.hermes/skills/, "
+        "~/.hermes/plugins/, ~/.hermes/cron/, ~/.hermes/memories/ — those belong "
+        "to a different session run from a different shell. Do NOT modify another "
+        "profile's skills/plugins/cron/memories unless the user explicitly directs "
+        "you to. The cross-profile write guard will refuse such writes by default; "
+        "pass cross_profile=True only after explicit direction."
+    )
+
 MEMORY_GUIDANCE = (
     "You have persistent memory across sessions. Save durable facts using the memory "
     "tool: user preferences, environment details, tool quirks, and stable conventions. "
